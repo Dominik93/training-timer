@@ -4,30 +4,35 @@
 		<title>Training timer</title>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 		<style>
-			  .container {
-				  font-size: 89px;
-				  margin-top: 25px;
-				  width: 100%;
-				  height: 100%;
-				  outline: dashed 1px black;
-				}
-				
-				.timer {   
-					display: table;
-					margin: 0 auto;
-				}
-				
+			.dark-mode {
+			  background: #222;
+			  background-color: #222;
+			  color: #DDD;
+			}
+			.timer-container {
+			  font-size: 89px;
+			  margin-top: 25px;
+			  width: 100%;
+			  height: 100%;
+			  outline: dashed 1px black;
+			}
+			.timer {   
+				display: table;
+				margin: 0 auto;
+			}]	
 		  </style>
 	</head>
-	<body>
+	<body id="container">
 		<span>Set interval</span>
 		<input id="interval" type="number" min="1"></input>
 		<span>Set rest</span>
 		<input id="rest" type="number" min="1"></input>
-		<button id="run">Run</button>
+		<button id="start">Start</button>
+		<button id="stop">Stop</button>
+		<button id="dark-light-mode">Dark/Light mode</button>
 		<br>
-		<div class="container">
-			<span id="timer" class="timer">0</span>
+		<div class="timer-container">
+			<span id="timer" class="timer">0 INITIAL</span>
 		</div>
 	</body>
 	<script>
@@ -36,27 +41,61 @@
 		snd.play();
 	}
 	
-	$( "#run" ).on( "click", function() {
-		var start = new Date;
-		var intervalCheck = false;
-		setInterval(function() {
-			var interval =  $( '#interval' ).val();
-			var rest =  $( '#rest' ).val();
-			var seconds = (Math.round((new Date - start) / 1000, 0));
-			if(!intervalCheck && seconds % rest === 0) {
-				beep();
-				start = new Date;
-				seconds = 0;
-				intervalCheck = true;
-			}
-			else if(intervalCheck && seconds % interval === 0) {
-				beep();
-				start = new Date;
-				seconds = 0;
-				intervalCheck = false;
-			}
-			$( '#timer' ).text( seconds + " " + (intervalCheck ? "Work" : "Rest")); 
-		}, 1000);
+	var ONE_SECONDS = 1000;
+	var DEFAULT_TRANSITION = 3;
+	var state = 'INITIAL';	
+	var start = new Date;
+	var seconds = 0;
+	var stateTrans = {
+		'INITIAL': 'REST',
+		'REST': 'REST TRANSITION',
+		'WORK': 'WORK TRANSITION',
+		'WORK TRANSITION': 'REST',
+		'REST TRANSITION': 'WORK',
+		'STOPED': 'REST'
+	};
+	
+	function getInverval() {
+		switch (state) {
+		  case 'WORK':	
+			return $( '#interval' ).val();
+		  case 'REST':
+			return $( '#rest' ).val();
+		  case 'REST TRANSITION':
+		  case 'WORK TRANSITION':
+			return DEFAULT_TRANSITION;
+		  default:
+			return 0;
+		}
+	}	
+	
+	function doTransition(interval) {
+		if(seconds % interval === 0) {
+			beep();
+			start = new Date;
+			seconds = 0;
+			state = stateTrans[state];
+		}
+	}
+			
+	setInterval(function() {
+		seconds = (Math.round((new Date - start) / ONE_SECONDS, 0));
+		var interval = getInverval();
+		doTransition(interval);
+		$( '#timer' ).text(seconds + " " + state); 
+	}, ONE_SECONDS);	
+		
+	$( "#start" ).click(function() {
+		state = 'REST TRANSITION';
+		start = new Date;
+	} );
+	
+	$( "#stop" ).click(function() {
+		state = 'STOPED';
+	} );
+	
+	$( "#dark-light-mode" ).click(function() {
+		$( "#container" ).toggleClass("dark-mode");
 	} );
 	</script>
 </html> 
